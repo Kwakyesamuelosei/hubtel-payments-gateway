@@ -7,18 +7,16 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
+== Introduction ==
 Hubtel believes Africa will be a better place when businesses make customers happy. 
 
-
-== Description ==
-
-This Woocommerce payment gateway makes it possible for merchants to add the Hubtel Payments gateway to their wordpress websites.
+This Woocommerce payment gateway makes it possible for merchants to add the Hubtel Payments to their WordPress websites.
 
 The purpose is to help you increase sales by providing more channels for accepting payments. Hubtel provides a Merchant Account with which you can receive payments from Ghana issued VISA and Mastercards. You can also receive payments from all the mobile money Mobile Network Operators: MTN, AirtelTigo and Vodafone.
 
 To signup for a Hubtel Merchant Account, visit [here](https://unity.hubtel.com/merchantaccount)
 
-Access more [help articles and documentation]() to know more about the service.
+Access more [help articles and documentation](https://help.hubtel.com) to know more about the service.
 
 = Note =
 
@@ -26,12 +24,11 @@ Hubtel Payments currently works for only Ghanaian Merchants.
 
 = Plugin Features =
 
-* Accept payments from bank cards (VISA & Mastercard)
+* Accept payments from bank cards (local VISA & Mastercard)
 * Accept payments from mobile money channels
 
 
 You can also follow me on Twitter! **[@aagalic](http://twitter.com/aagalic)**
-
 
 == Installation ==
 
@@ -54,6 +51,10 @@ You can also follow me on Twitter! **[@aagalic](http://twitter.com/aagalic)**
 * 	Click on the __Hubtel Payments__ link from the available Checkout Options
 *	Configure your __Hubtel Payments__ settings. See below for details.
 
+or
+
+* Unzip the files and upload the folder into your plugins folder (/wp-content/plugins/) overwriting older versions if they exist
+* Activate the plugin in your WordPress admin area.
 
 
 = Configure the plugin =
@@ -67,8 +68,6 @@ To configure the Hubtel Payments Gateway plugin to work with your WordPress site
 * __Your Merchant Account Number__ - provide your merchant account number displayed on your dashboard.
 * Remember to configure your currency to Ghana Cedis on WooCommerce.
 
-
-
 == Frequently Asked Questions ==
 
 = How do I get started with receiving payments with Hubtel using this plugin =
@@ -79,7 +78,7 @@ To configure the Hubtel Payments Gateway plugin to work with your WordPress site
 
 = What do I do if I am facing issues with this plugin =
 
-You can rais a support ticket [here](https://wordpress.org/support/plugin/hubtel-payments-gateway).
+You can raise a support ticket [here](https://wordpress.org/support/plugin/hubtel-payments-gateway).
 
 
 = Where do I get more information on how to use Hubtel =
@@ -87,6 +86,9 @@ You can rais a support ticket [here](https://wordpress.org/support/plugin/hubtel
 You can find more help information and documentation on how to use Hubtel [here](http://help.hubtel.com).
 
 == Changelog ==
+1.0.1 Handle Hubtel callback for successful and failed payment scenarios
+      Update Wordpress with correct Plugin URL
+      Improve order status notifications
 
 1. First Release
 

@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Hubtel Payments Gateway.
- * Plugin URI: https://wordpress.org/plugins/hubtel-payments-gateway
+ * Plugin Name: Hubtel Payments for WooCommerce.
+ * Plugin URI: https://wordpress.org/plugins/woo-hubtel-payments-gateway/
  * Description: This plugin enables you to accept online payments for Ghana issued cards and mobile money payments using Hubtel payments API..
  * Version: 1.0.0
  * Author: Adams Agalic
@@ -20,6 +20,11 @@
 
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
+if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))){
+    echo "<div class='error notice'><p>Woocommerce has to be installed and active to use the the Hubtel Payments Gateway</b> plugin</p></div>";
+    return;
+}
+
 function hubtel_init()
 {
 
@@ -65,10 +70,9 @@ function hubtel_init()
 					}				}
 				
 				//register webhook listener action
-				add_action( 'woocommerce_api_wc_hubtel_payment_webhook', array( $this, 'check_hubtel_payment_webhook' ) );
+				add_action( 'woocommerce_api_wc_hubtel_payment_gateway', array( $this, 'check_hubtel_payment_webhook' ) );
 
 			}
-
 
 			public function init_form_fields()
 			{
@@ -121,7 +125,7 @@ function hubtel_init()
 						'description' =>  'This is your Hubtel Merchant Account which you can find in your Hubtel Dashboard',
 						'default' => '',
 						'desc_tip'      => true,
-						'placeholder' => 'Hubtel API Clientsecret'
+						'placeholder' => 'Hubtel Merchant Account Number'
 						),
 			'hubtel_merchant_logo' => array(
 						'title' =>  'Hubtel Merchant Logo URL',
@@ -129,9 +133,8 @@ function hubtel_init()
 						'description' =>  'This is the Merchant logo URL that should be displayed on the checkout page.',
 						'default' => '',
 						'desc_tip'      => true,
-						'placeholder' => 'Hubtel API Clientsecret'
-						)
-						
+						'placeholder' => 'Hubtel Merchant Logo'
+						)						
 					);
 
 			}
@@ -142,23 +145,33 @@ function hubtel_init()
 			public function check_hubtel_payment_webhook()
 			{
 				// receive callback 
-				$webhook_res = json_encode(file_get_contents("php://input"));
-				
-				 //Update the order status
-				// $order->update_status('on-hold', '');
+				$decode_webhook = json_decode(@file_get_contents("php://input"));
 
-				// //Error Note
-				// $message = 'Thank you for shopping with us.<br />Your payment transaction was successful, but the amount paid is not the same as the total order amount.<br />Your order is currently on-hold.<br />Kindly contact us for more information regarding your order and payment status.';
-				// $message_type = 'notice';
+				 global $woocommerce;
+				 $order_ref = $decode_webhook->Data->ClientReference;
 
-				// //Add Customer Order Note
-			    // $order->add_order_note( $message.'<br />Paga Transaction ID: '.$transaction_id, 1 );
-				// Reduce stock levels
-				$order->reduce_order_stock();
+				 //retrieve order id from the client reference
+				 $order_ref_items = explode('-', $order_ref);
+				 $order_id = $order_ref_items[2];
 
-				// Empty cart
-				WC()->cart->empty_cart();
+				 $order = new WC_Order( $order_id );
+				 //process the order with returned data from Hubtel callback
+				if($decode_webhook->ResponseCode == '0000' && $decode_webhook->Status == 'Success')
+				{
+					
+					$order->add_order_note('Hubtel payment completed');				
+					
+					//Update the order status
+					$order->update_status('payment processed', 'Payment Successful with Hubtel');
+					$order->payment_complete();
 
+					//reduce the stock level of items ordered
+					wc_reduce_stock_levels($order_id);
+				}else{
+					//add notice to order to inform merchant of 
+					$order->add_order_note('Payment failed at Hubtel. Send an email to support@hubtel.com for assistance using this checkout ID:'
+											.$decode_webhook->Data->CheckoutId);
+				}
 				
 			}
 
@@ -196,23 +209,22 @@ function hubtel_init()
 				//hubtel payment request body args
 				$hubtel_request_args = [
 					  "items" => $hubtel_items,
-					  "totalAmount" =>$total_cost, //get total cost of order items
+					  "totalAmount" =>$total_cost, //get total cost of order items // WC()->cart->get_cart_subtotal();
 					  "description" => $this->get_option('hubtel_description'),
 					  "callbackUrl" => WC()->api_request_url( 'WC_Hubtel_Payment_Gateway'), //register callback
 					  "returnUrl" => $order->get_checkout_order_received_url(), //return to this page
 					  "merchantBusinessLogoUrl" => $this->hubtel_merchant_logo, 
 					  "merchantAccountNumber" => $this->hubtel_merchant_number,
 					  "cancellationUrl" => get_home_url(), //checkout url
-					  "clientReference" => date('his').rand(0, 10000) //generate a unique id the client reference
+					  "clientReference" => date('s-').rand(0, 100).'-'.$order_id //generate a unique id the client reference
 				];
-				
 				
 				
 				//initiate request to Hubtel payments API
 				$base_url = 'https://api.hubtel.com/v2/pos/onlinecheckout/items/initiate';
 				$response = wp_remote_post($base_url, array(
 					'method' => 'POST',
-					'timeout' => 60,
+					'timeout' => 45,
 					'headers' => array(
 						'Authorization' => 'Basic '.base64_encode($this->hubtel_clientid.':'.$this->hubtel_clientsecret),
 						'Content-Type' => 'application/json'
@@ -229,16 +241,22 @@ function hubtel_init()
 				$response_body_args = json_decode($response_body, true);
 
 				if($response_code == 200){
+
+					$order->update_status('on-hold: awaiting payment', 'Awaiting payment');
+					 
+					// Remove cart
+					$woocommerce->cart->empty_cart();
+
 					return array(
 						'result'   => 'success',
 						'redirect' => $response_body_args['data']['checkoutUrl']
 					);
 				}else{
-					$order->add_order_note('Could not reach Hubtel');
+					wc_add_notice('Payment Error: Could not reach Hubtel Payment Gateway. Please try again', 'error' );
+					return;
 				}			
 					
 			}
-
 
         }  // end of class WC_Hubtel_Payment_Gateway
 
