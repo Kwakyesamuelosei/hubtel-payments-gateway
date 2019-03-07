@@ -193,6 +193,24 @@ function hubtel_init()
 				$hubtel_items = [];
 				$items_counter = 0;
 				$total_cost = 0;
+
+				//Add shipping and VAT as a stand alone item
+				//so that it appears in the customers bill.
+				$order_shipping_total = $order->get_total_shipping();
+				$order_tax_total = $order->get_total_tax();
+				$hubtel_items[$items_counter] = [
+							"name" => "VAT",
+							"quantity" => 1, // VAT is always 1. Lol
+							"unitPrice" => $order_tax_total
+					];
+					$items_counter = $items_counter+1;
+				$hubtel_items[$items_counter] = [
+							"name" => "Shipping",
+							"quantity" => 1, // Always 1
+							"unitPrice" => $order_shipping_total
+					];
+					
+					$items_counter = $items_counter+1;
 				foreach ($order_data as $order_key => $order_value):
 
 					$hubtel_items[$items_counter] = [
@@ -205,11 +223,10 @@ function hubtel_init()
 						$items_counter++;
 				endforeach;
 
-
 				//hubtel payment request body args
 				$hubtel_request_args = [
 					  "items" => $hubtel_items,
-					  "totalAmount" =>$total_cost, //get total cost of order items // WC()->cart->get_cart_subtotal();
+					  "totalAmount" =>$order_shipping_total + $total_cost + $order_tax_total, //get total cost of order items // WC()->cart->get_cart_subtotal();
 					  "description" => $this->get_option('hubtel_description'),
 					  "callbackUrl" => WC()->api_request_url( 'WC_Hubtel_Payment_Gateway'), //register callback
 					  "returnUrl" => $order->get_checkout_order_received_url(), //return to this page
